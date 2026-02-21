@@ -30,36 +30,48 @@ function Carousel({ items }: CarouselProps) {
 
   return (
     <div className={styles.carousel}>
-      <button
-        className={styles.arrow}
-        onClick={goPrev}
-        disabled={currentIndex === 0}
-        aria-label="이전"
-      >
-        &#8249;
-      </button>
-      <div className={styles.viewport}>
-        <div ref={trackRef} className={styles.track}>
-          {items.map((item) => (
-            <div key={item.src} className={styles.item}>
-              <img
-                src={item.src}
-                alt={item.alt}
-                width={item.width}
-                height={item.height}
-              />
-            </div>
-          ))}
+      <div className={styles.slider}>
+        <button
+          className={styles.arrow}
+          onClick={goPrev}
+          disabled={currentIndex === 0}
+          aria-label="이전"
+        >
+          &#8249;
+        </button>
+        <div className={styles.viewport}>
+          <div ref={trackRef} className={styles.track}>
+            {items.map((item) => (
+              <div key={item.src} className={styles.item}>
+                <img
+                  src={item.src}
+                  alt={item.alt}
+                  width={item.width}
+                  height={item.height}
+                />
+              </div>
+            ))}
+          </div>
         </div>
+        <button
+          className={styles.arrow}
+          onClick={goNext}
+          disabled={currentIndex === items.length - 1}
+          aria-label="다음"
+        >
+          &#8250;
+        </button>
       </div>
-      <button
-        className={styles.arrow}
-        onClick={goNext}
-        disabled={currentIndex === items.length - 1}
-        aria-label="다음"
-      >
-        &#8250;
-      </button>
+      <div className={styles.dots}>
+        {items.map((_, index) => (
+          <button
+            key={index}
+            className={`${styles.dot} ${index === currentIndex ? styles.active : ''}`}
+            onClick={() => goTo(index)}
+            aria-label={`슬라이드 ${index + 1}로 이동`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
