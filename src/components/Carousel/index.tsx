@@ -48,6 +48,14 @@ function Carousel({ items }: CarouselProps) {
                   alt={item.alt}
                   width={item.width}
                   height={item.height}
+                  style={
+                    item.width && item.height
+                      ? {
+                          aspectRatio: `${item.width} / ${item.height}`,
+                          objectFit: 'cover',
+                        }
+                      : undefined
+                  }
                 />
               </div>
             ))}
