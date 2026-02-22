@@ -1,73 +1,68 @@
-# React + TypeScript + Vite
+## 프로젝트 실행 방법
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+브라우저에서 `http://localhost:5173` 접속
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+## 기술 스택 및 선택 이유
+
+| 기술                   | 왜 썼는지                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| **React + TypeScript** | 컴포넌트로 UI를 나누기 쉽고, 타입으로 버그를 줄이기 위해                           |
+| **GSAP**               | 슬라이드 애니메이션을 부드럽게 만들기 위해 (CSS transition보다 세밀하게 조절 가능) |
+| **Vite**               | 개발 서버가 빨라서, 수정하면 바로 화면에 반영됨                                    |
+| **CSS Modules**        | 클래스 이름이 겹치지 않게 하기 위해 (예: `.item`이 여러 파일에 있어도 충돌 없음)   |
+
+---
+
+## 구현 내용
+
+- **이전/다음 버튼**: 클릭하면 슬라이드가 넘어감
+- **터치 스와이프**: 모바일에서 손가락으로 좌우 스와이프하면 슬라이드 전환
+- **인디케이터(점)**: 현재 몇 번째 슬라이드인지 보여주고, 점을 누르면 해당 슬라이드로 이동
+- **다양한 이미지 크기 대응**: 가로/세로 비율이 다른 이미지도 깨지지 않고 보이도록 처리
+- **첫/마지막 슬라이드**: 맨 앞에서는 이전 버튼, 맨 뒤에서는 다음 버튼 비활성화
+
+---
+
+## 고민했던 부분
+
+### 1. useCallback을 어디에만 쓸지?
+
+- `goTo`는 `handleTouchEnd` 안에서 쓰이므로 `useCallback`으로 감쌌음
+- `goPrev`, `goNext`는 `goTo`만 호출하는 짧은 함수라 굳이 `useCallback` 안 씀
+- `handleTouchEnd`에서는 `goPrev()`/`goNext()` 대신 `goTo(currentIndex ± 1)`을 직접 호출함 (의존성 배열을 단순하게 하려고)
+
+### 2. 터치 스와이프할 때 페이지가 같이 스크롤되는 문제
+
+- React의 `onTouchMove`는 기본적으로 `preventDefault()`를 못 씀 (성능 때문에 passive 모드)
+- 그래서 `addEventListener`로 `{ passive: false }`를 직접 지정해서 등록함
+- 이렇게 해야 가로 스와이프 시 브라우저 기본 동작(스크롤 등)을 막을 수 있음
+
+### 3. 터치 중에 currentIndex가 안 바뀌는 것처럼 보이는 문제
+
+- `touchmove` 핸들러는 `useEffect` 안에서 한 번만 등록됨
+- 그때의 `currentIndex` 값에 계속 묶여 있어서(stale closure) 최신 값이 안 들어감
+- 해결: `currentIndexRef`를 두고, 항상 최신 `currentIndex`를 ref에 넣어둠. 터치 핸들러에서는 이 ref를 읽음
+
+### 4. 캐러셀 크기는 어떻게 정할지?
+
+- props로 width/height를 받을 수도 있지만, 부모 컨테이너 크기를 따라가게 함 (`width: 100%`, `height: 100%`)
+- 사용하는 쪽에서 감싸는 div 크기만 정해주면 됨
+
+### 5. 이미지 width/height는 꼭 넣어야 할지?
+
+- optional로 둠. 넣으면 `aspectRatio`로 비율을 맞춰서 레이아웃이 덜 흔들리고, 안 넣으면 CSS `object-fit`으로 처리함
+
+---
+
+## 아쉬운 점 / 개선하고 싶은 점
+
+- 대각선으로 스와이프하면 가로/세로가 계속 바뀌어서 어색할 수 있음 → 처음 움직인 방향을 잡아두는 방식으로 개선하면 좋겠음
+- 키보드로 슬라이드 이동 기능 미구현
+- 무한 루프 기능 미구현
